@@ -1,15 +1,425 @@
 <!DOCTYPE html>
-<html lang="eng">
+<html>
     <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial scale">
-        <link rel="stylesheet" href="index.css">
-        <title>LaunchPad Mini</title>
+        <title>LaunchPad Chess</title>
+        <link rel="stylesheet" href="css/chessboard-1.0.0.min.css">
+        <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+        <script src="js/chessboard-1.0.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js" integrity="sha384-s3XgLpvmHyscVpijnseAmye819Ee3yaGa8NxstkJVyA6nuDFjt59u1QvuEl/mecz" crossorigin="anonymous"></script>
     </head>
     <body>
-        <h2>Hello World!</h2>
+        <div id="myBoard" style="width: 800px"></div>
+        <label>Status:</label>
+        <div id="status"></div>
+        <label>FEN:</label>
+        <div id="fen"></div>
+        <label>PGN:</label>
+        <div id="pgn"></div>
+        <script>
+            var board = null
+            var game = new Chess()
+            var whiteSquareGrey = '#a9a9a9'
+            var blackSquareGrey = '#696969'
 
-        <script src="launchpad.js"></script>
+            function removeGreySquares () {
+            $('#myBoard .square-55d63').css('background', '')
+            }
+
+            function greySquare (square) {
+            var $square = $('#myBoard .square-' + square)
+
+            var background = whiteSquareGrey
+            if ($square.hasClass('black-3c85d')) {
+                background = blackSquareGrey
+            }
+
+            $square.css('background', background)
+            }
+
+            function onDragStart (source, piece) {
+            // do not pick up pieces if the game is over
+            if (game.game_over()) return false
+
+            // or if it's not that side's turn
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                return false
+            }
+            }
+
+            function onDrop (source, target) {
+            removeGreySquares()
+
+            // see if the move is legal
+            var move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q' // NOTE: always promote to a queen for example simplicity
+            })
+
+            // illegal move
+            if (move === null) return 'snapback'
+            }
+
+            function onMouseoverSquare (square, piece) {
+            // get list of possible moves for this square
+            var moves = game.moves({
+                square: square,
+                verbose: true
+            })
+
+            // exit if there are no moves available for this square
+            if (moves.length === 0) return
+
+            // highlight the square they moused over
+            greySquare(square)
+
+            // highlight the possible squares for this piece
+            for (var i = 0; i < moves.length; i++) {
+                greySquare(moves[i].to)
+            }
+            }
+
+            function onMouseoutSquare (square, piece) {
+            removeGreySquares()
+            }
+
+            function onSnapEnd () {
+            board.position(game.fen())
+            updateBoard();
+            }
+
+            var config = {
+            draggable: true,
+            position: 'start',
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            onMouseoutSquare: onMouseoutSquare,
+            onMouseoverSquare: onMouseoverSquare,
+            onSnapEnd: onSnapEnd
+            }
+            board = Chessboard('myBoard', config)
+
+            //LaunchPad Code ------------------------------------------------------------------------------
+
+            let whitePawn = 5; //
+            let whiteRook = 9;
+            let whiteKnight = 13; //
+            let whiteBishop = 11; //
+            let whiteKing = 95; //
+            let whiteQueen = 107;
+
+            let blackPawn = 78;
+            let blackRook = 85;
+            let blackKnight = 101;
+            let blackBishop = 45;
+            let blackKing = 81;
+            let blackQueen = 90;
+
+            chosePiece = false;
+
+            pieceSpace = 0;
+
+            chessSquares = [
+                'a1', 'b1', 'c1', 'd1', 'a2', 'b2', 'c2', 'd2',
+                'a3', 'b3', 'c3', 'd3', 'a4', 'b4', 'c4', 'd4',
+                'a5', 'b5', 'c5', 'd5', 'a6', 'b6', 'c6', 'd6',
+                'a7', 'b7', 'c7', 'd7', 'a8', 'b8', 'c8', 'd8',
+                'e1', 'f1', 'g1', 'h1', 'e2', 'f2', 'g2', 'h2',
+                'e3', 'f3', 'g3', 'h3', 'e4', 'f4', 'g4', 'h4',
+                'e5', 'f5', 'g5', 'h5', 'e6', 'f6', 'g6', 'h6',
+                'e7', 'f7', 'g7', 'h7', 'e8', 'f8', 'g8', 'h8'
+                ];
+
+            console.log(game.get('a3'))
+
+            console.log(navigator);
+
+            
+
+            let device;
+
+            if (navigator.requestMIDIAccess){
+                navigator.requestMIDIAccess().then(success, failure);
+            }
+            function failure(){
+                console.log("Could not connect MIDI");
+            }
+            function updateDevices(event){
+                // console.log(event);
+            }
+
+            function success(midiAccess){
+                midiAccess.addEventListener("statechange", updateDevices);
+                const inputs = midiAccess.inputs;
+                // console.log(inputs)
+
+                for(let output of midiAccess.outputs.values()){
+                    device = output;
+                    console.log("output selected")
+                }
+
+                inputs.forEach((input) => {
+                    // console.log(input)
+                    input.addEventListener("midimessage", handleInput);
+                })
+
+                updateBoard();
+            }
+
+            function handleInput(input){
+                // console.log(input);
+                let command = input.data[0];
+                let note = input.data[1];
+                let velocity = input.data[2];
+
+                let data = input.data;
+
+                if (velocity > 0){
+                    console.log(`command: ${command}, note: ${note}, velocity: ${velocity}`);
+                    noteOn(note);
+                }
+
+                if (velocity == 0){
+                    noteOff(note)
+                }
+                
+            }
+
+            function noteOn (note){
+
+                console.log(`note: ${note} // on`)
+                
+                console.log(chessSquares[note - 36])
+
+                console.log(game.get(chessSquares[note - 36]))
+
+                if (chosePiece == true){
+
+                    movePiece(pieceSpace, note);
+
+                }
+
+                cleanUp(note);
+
+                highlightMoves(note);
+
+            }
+
+            function noteOff(note){
+
+                
+
+            }
+
+            function colorM(key, clr){
+
+                device && device.send([0x90,key,clr]);
+
+            }
+
+            function cleanUp(note){
+
+                piece = game.get(chessSquares[note - 36])
+
+                if (piece != null){
+
+                    onMouseoutSquare(chessSquares[i - 36], piece.type)
+
+                }
+
+                for (i = 0; i < 64; i++){
+
+                    piece = game.get(chessSquares[i]);
+
+                    if (piece == null){
+
+                        colorM(i + 36, 0);
+
+                        continue;
+
+                    }
+
+                }
+                
+            }
+
+            
+            function highlightMoves(note){
+
+                square = chessSquares[note - 36]
+
+                console.log(square);
+
+                //COMPUTER BOARD ------------------------------------------------
+
+                // get list of possible moves for this square
+                var moves = game.moves({
+                square: square,
+                verbose: true
+                })
+
+                // exit if there are no moves available for this square
+                if (moves.length === 0) return
+
+                // highlight the square they moused over
+                greySquare(square)
+
+                console.log(moves)
+
+                // highlight the possible squares for this piece
+                for (var i = 0; i < moves.length; i++) {
+                    greySquare(moves[i].to)
+                }
+
+                // LAUNCHPAD ------------------------------------------------------
+
+                for (i = 0; i < moves.length; i++){
+
+                    let indexValue = moves[i].to;
+
+                    let notLaunchpadNum = chessSquares.indexOf(indexValue);
+
+                    let launchpadNum = notLaunchpadNum + 36;
+
+                    colorM(launchpadNum, 87);
+
+                }
+
+                chosePiece = true;
+
+                pieceSpace = note;
+
+            }
+
+            function movePiece(start, end){
+
+                removeGreySquares()
+
+                for (i = 0; i < 64; i++){
+
+                    piece = game.get(chessSquares[i]);
+
+                    if (piece == null){
+
+                        colorM(i + 36, 0);
+
+                        continue;
+
+                    }
+
+                }
+
+                start = chessSquares[start - 36];
+
+                end = chessSquares[end - 36];
+
+                // see if the move is legal
+                var move = game.move({
+                    from: start,
+                    to: end,
+                    promotion: 'q' // NOTE: always promote to a queen for example simplicity
+                })
+
+                // illegal move
+                if (move === null) return 'snapback'
+
+                onSnapEnd();
+
+            }    
+            
+            function updateBoard(){
+
+                for (i = 0; i < 64; i++){
+
+                    piece = game.get(chessSquares[i]);
+
+                    if (piece == null){
+
+                        colorM(i + 36, 0);
+
+                        continue;
+
+                    }
+
+                    switch(piece.type){
+
+                        case 'p':
+                            switch(piece.color){
+
+                                case 'w':
+                                    colorM(i + 36, whitePawn);
+                                    break;
+                                case 'b':
+                                    colorM(i + 36, blackPawn);
+                                    break;
+                            }
+                            break;
+                        case 'r':
+                            switch(piece.color){
+
+                                case 'w':
+                                    colorM(i + 36, whiteRook);
+                                    break;
+                                case 'b':
+                                    colorM(i + 36, blackRook);
+                                    break;
+                            }
+                            break;
+                        case 'n':
+                        switch(piece.color){
+
+                            case 'w':
+                                colorM(i + 36, whiteKnight);
+                                break;
+                            case 'b':
+                                colorM(i + 36, blackKnight);
+                                break;
+                            }
+                            break;
+                        case 'b':
+                        switch(piece.color){
+
+                            case 'w':
+                                colorM(i + 36, whiteBishop);
+                                break;
+                            case 'b':
+                                colorM(i + 36, blackBishop);
+                                break;
+                            }
+                            break;
+                        case 'k':
+                        switch(piece.color){
+
+                            case 'w':
+                                colorM(i + 36, whiteKing);
+                                break;
+                            case 'b':
+                                colorM(i + 36, blackKing);
+                                break;
+                            }
+                            break;
+                        case 'q':
+                        switch(piece.color){
+
+                            case 'w':
+                                colorM(i + 36, whiteQueen);
+                                break;
+                            case 'b':
+                                colorM(i + 36, blackQueen);
+                                break;
+                            }
+                            break;
+                        default:
+                            break;
+
+                    }
+
+                }      
+
+            }
+            
+
+            </script>
     </body>
 </html>
